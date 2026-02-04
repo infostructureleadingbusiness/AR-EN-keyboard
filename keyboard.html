@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EN/AR Vuplex Keyboard</title>
+  <style>
+  /* Always place keys left-to-right in the grid */
+.row {
+  direction: ltr;
+}
+.key {
+  direction: rtl;           /* only the text on the key is RTL */
+  unicode-bidi: plaintext;
+}
+
+    :root {
+      --gap: 10px;
+      --key-h: 70px;
+      --radius: 14px;
+      --font: system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans Arabic", sans-serif;
+    }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: #111;
+      color: #fff;
+      user-select: none;
+    }
+    .wrap { padding: 16px; }
+    .top {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .pill {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: #1f1f1f;
+      border: 1px solid #333;
+      font-size: 18px;
+    }
+    .grid {
+      display: grid;
+      gap: var(--gap);
+    }
+    .row {
+      display: grid;
+      gap: var(--gap);
+      grid-auto-flow: column;
+      grid-auto-columns: 1fr;
+    }
+    button.key {
+      height: var(--key-h);
+      border-radius: var(--radius);
+      border: 1px solid #333;
+      background: #1b1b1b;
+      color: #fff;
+      font-size: 26px;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    button.key:active { transform: scale(0.98); }
+
+    .wide2 { grid-column: span 2; }
+    .wide3 { grid-column: span 3; }
+    .wide4 { grid-column: span 4; }
+
+    /* Arabic mode: flip keyboard flow */
+    .rtl { direction: rtl; }
+    .rtl button.key { font-size: 28px; }
+  </style>
+</head>
+
+<body>
+<div class="wrap" id="root">
+  <div class="top">
+    <div class="pill" id="modeLabel">EN</div>
+    <div class="pill">Vuplex Keyboard</div>
+  </div>
+
+  <div class="grid" id="keyboard"></div>
+</div>
+
+<script>
+    
+  // --- Layouts ---
+  const EN = [
+    ["q","w","e","r","t","y","u","i","o","p"],
+    ["a","s","d","f","g","h","j","k","l"],
+    ["z","x","c","v","b","n","m"]
+  ];
+
+  // Basic Arabic letters (common keyboard order)
+  const AR = [
+  ["ض","ص","ث","ق","ف","غ","ع","ه","خ","ح","ج","د"],
+  ["ش","س","ي","ب","ل","ا","ت","ن","م","ك","ط"],
+  ["ئ","ء","ؤ","ر","لا","ى","ة","و","ز","ظ"]
+];
+
+
+  let mode = "EN";
+
+  function post(msg) {
+    // Vuplex injects window.vuplex in the keyboard webview
+    if (window.vuplex && typeof window.vuplex.postMessage === "function") {
+      window.vuplex.postMessage(msg);
+    } else {
+      // Helpful while testing in a normal browser
+      console.log("vuplex.postMessage:", msg);
+    }
+  }
+
+  function makeKey(label, value = label, extraClass = "") {
+    const b = document.createElement("button");
+    b.className = "key " + extraClass;
+    b.textContent = label;
+    b.onclick = () => post(value);
+    return b;
+  }
+
+  function render() {
+    const kb = document.getElementById("keyboard");
+    kb.innerHTML = "";
+
+    const root = document.getElementById("root");
+    const modeLabel = document.getElementById("modeLabel");
+    modeLabel.textContent = mode;
+
+    if (mode === "AR") root.classList.add("rtl");
+    else root.classList.remove("rtl");
+
+    const layout = (mode === "AR") ? AR : EN;
+
+    // Letter rows
+    layout.forEach(rowChars => {
+      const row = document.createElement("div");
+      row.className = "row";
+      rowChars.forEach(ch => row.appendChild(makeKey(ch, ch)));
+      kb.appendChild(row);
+    });
+
+    // Controls row
+    const controls = document.createElement("div");
+    controls.className = "row";
+
+    // Language toggle
+    const toggle = makeKey(mode === "AR" ? "EN" : "AR", "__TOGGLE__", "wide2");
+    toggle.onclick = () => { mode = (mode === "AR") ? "EN" : "AR"; render(); };
+
+    // Space / Backspace / Enter
+    const space = makeKey("Space", " ", "wide4");
+    const back = makeKey("⌫", "Backspace", "wide2");     // Vuplex examples treat Backspace as "Backspace"
+    const enter = makeKey("Enter", "Enter", "wide2");    // Common special key name
+
+    controls.appendChild(toggle);
+    controls.appendChild(back);
+    controls.appendChild(space);
+    controls.appendChild(enter);
+    kb.appendChild(controls);
+  }
+
+  render();
+</script>
+</body>
+</html>
